@@ -1,0 +1,295 @@
+<HTML>
+<HEAD>
+<TITLE>Data for Crop</TITLE>
+<SCRIPT>
+/*
+params:
+*/
+var m_sCropIcon;
+var m_sSeedIcon;
+var m_sCropName;
+var m_iUnits;
+var m_iReplants;
+var m_sPlantedOn;
+var m_sFieldConfig;
+var m_iBagsPlanted;
+var m_iCostPerBag;
+var m_iSellPer1;
+var m_iSellPerBag;
+var m_iSellAllBags;
+var m_iSaved;
+var m_iChFeed;
+
+var m_sInputParams = window.dialogArguments;
+var m_arrInput;
+var m_bHasInput = true;
+
+function parseInput() {
+
+	if (m_sInputParams == null) {
+		m_bHasInput = false;
+		return;
+	}
+
+	m_arrInput = m_sInputParams.split(',');
+
+	m_sCropIcon 		= m_arrInput[0];
+	m_sSeedIcon 		= m_arrInput[1];
+	m_sCropName 		= m_arrInput[2];
+	m_iUnits 				= m_arrInput[3];
+	m_iReplants 		= m_arrInput[4];
+	m_sPlantedOn 		= m_arrInput[5];
+	m_sFieldConfig 	= m_arrInput[6];
+	m_iBagsPlanted 	= m_arrInput[7];
+	m_iCostPerBag 	= m_arrInput[8];
+	m_iSellPer1 		= m_arrInput[9];
+	m_iSellPerBag 	= m_arrInput[10];
+	m_iSellAllBags 	= m_arrInput[11];
+	m_iSaved 				= m_arrInput[12];
+
+	if (m_sCropName == 'Corn') {
+		var iBags  = parseInt(m_iBagsPlanted,10);
+		var iUnits = parseInt(m_iUnits,10);
+		m_iChFeed	= iBags * iUnits * 30;
+	}
+	else {
+		m_iChFeed = -1;
+	}
+}
+
+function setScreen() {
+	if (!m_bHasInput) {
+		alert('This screen can not be loaded separately');
+		document.location.href = 'planner.htm'
+		return;
+	}
+
+	//to be called after document is fully loaded
+	var imgIcon 				= document.getElementById("imgIcon");
+	var imgSeed1 				= document.getElementById("imgSeed1");
+	var imgSeed2 				= document.getElementById("imgSeed2");
+	var tdCropName 			= document.getElementById("tdCropName");
+	var tdUnits 				= document.getElementById("tdUnits");
+	var spnReplants 		= document.getElementById("spnReplants");
+	var tdPlantedOn 		= document.getElementById("tdPlantedOn");
+
+	var spnBagsPl 			= document.getElementById("spnBagsPl");
+	var spnBagCost 			= document.getElementById("spnBagCost");
+	var spnSellPer1 		= document.getElementById("spnSellPer1");
+	var spnSellPerBag 	= document.getElementById("spnSellPerBag");
+	var spnSellAllBags 	= document.getElementById("spnSellAllBags");
+
+	var tblData					= document.getElementById("tblData");
+
+	//get the season name
+	var iSpcIdx;
+	var sSeasonName;
+
+	//set the season style
+	iSpcIdx = m_sPlantedOn.indexOf(' ');
+	sSeasonName = m_sPlantedOn.substring(0,iSpcIdx);
+	sSeasonName = sSeasonName.toLowerCase();
+	tblData.className = 'dtable ' + sSeasonName;
+	tblData.rows[0].className = sSeasonName;
+
+	imgIcon.src 							= m_sCropIcon;
+	imgSeed1.src 							= m_sSeedIcon;
+	imgSeed2.src 							= m_sSeedIcon;
+	tdCropName.innerText 			= m_sCropName;
+	tdUnits.innerText 				= m_iUnits;
+	spnReplants.innerText 		= m_iReplants;
+	tdPlantedOn.innerText 		= m_sPlantedOn
+
+	setConfigTbl(m_sFieldConfig)
+
+	spnBagsPl.innerText 			= m_iBagsPlanted;
+	spnBagCost.innerText 			= m_iCostPerBag;
+	spnSellPer1.innerText 		= m_iSellPer1;
+	spnSellPerBag.innerText 	= m_iSellPerBag;
+	spnSellAllBags.innerText 	= m_iSellAllBags;
+
+	if (m_iSaved == 0) {
+		document.body.className = 'draft';
+	}
+
+	//m_iChFeed
+	var trChickenFeed = document.getElementById("trChickenFeed");
+	var spnFeed 			= document.getElementById("spnFeed");
+
+	if (m_iChFeed > -1) {
+		trChickenFeed.style.display = 'block';
+		spnFeed.innerText = m_iChFeed;
+	}
+	else {
+		trChickenFeed.style.display = 'none';
+	}
+
+}
+
+function setConfigTbl(sConfigFlag) {
+	var tblCfgIcon = document.getElementById("tblCfgIcon");
+	var i;
+	var sBit;
+	var oImg;
+
+	for (i=0; i<9; i++) {
+		sBit = sConfigFlag.charAt(i);
+		oImg = tblCfgIcon.cells[i].childNodes[0];
+
+		if (sBit == "1") {
+			oImg.src = "p1.gif"
+		}
+		else {
+			oImg.src = "p0.gif"
+		}
+
+	}
+}
+
+function closeWindow() {
+	window.close();
+}
+
+//begin
+parseInput()
+</SCRIPT>
+<STYLE>
+BODY {
+	font-family: Microsoft Sans Serif, Verdana, Arial, Sans Serif;
+}
+.dtable {
+	border-collapse:collapse;
+}
+
+.dtable th {
+	font-size:8pt;
+	text-align:right;
+}
+
+.dtable td {
+	font-size:9pt;
+	text-align:left;
+	padding-left:3px;
+}
+
+.dtable td.header {
+	font-size:12pt;
+	font-weight:bold;
+	padding-left:20px;
+}
+
+INPUT.okBtn {
+	width:50px;
+	height:20px;
+	font-size:8pt;
+}
+
+.dtable td img.icon {
+ 	width:30px;
+ 	height:30px;
+}
+
+.fall th {
+	background-color:#FFE0E0;
+}
+
+tr.fall {
+	background-color:#FFE0E0;
+}
+
+.spring th {
+	background-color:#E0FFE0;
+}
+
+tr.spring {
+	background-color:#E0FFE0;
+}
+
+.summer th {
+	background-color:#FFFFE0;
+}
+
+tr.summer{
+	background-color:#FFFFE0;
+}
+
+.draft {
+	background-image:url(nsav.gif);
+	background-repeat:repeat-y;
+	background-position-x:90px;
+	background-position-y:110px;
+}
+
+.saved {
+	background-image:none;
+}
+
+.cfgTbl {
+	padding:0px;
+	border:solid 0xp white;
+	font-size:9pt;
+	height:10px;
+}
+
+.cfgTbl td {
+	padding:0px;
+	border:solid 0px white;
+}
+
+</STYLE>
+</HEAD>
+<BODY class="saved">
+<!-- note pass in the harv value and regrow value -->
+<table id="tblData" cellpadding="3" cellspacing="0" border="1" class="dtable spring">
+<tr class="spring">
+<td align="center"><CENTER><img id="imgIcon" class="icon" src="../planner/veg_turnip.png"/></CENTER></td>
+<td colspan="2" class="header">Data Sheet</td>
+</tr>
+<tr>
+<th>Crop:</th><td id="tdCropName" colspan="2">Turnip</td>
+</tr>
+<tr>
+<th>Units:</th><td id="tdUnits" colspan="2">9</td>
+</tr>
+<tr>
+<th>Replants:</th><td colspan="2"><img id="imgSeed1" src="seed_turnip.png"/> x <SPAN id="spnReplants">1</SPAN></td>
+</tr>
+<tr>
+<th>Planted On:</th><td id="tdPlantedOn" colspan="2">Spring 1st</td>
+</tr>
+<tr>
+<th>Field Config:</th><td id="tdFieldConfig" colspan="2" style="padding-left:50px">
+<table id="tblCfgIcon" class="cfgTbl" cellpadding="0" cellspacing="0">
+<tr><td><img src="p0.gif"></td><td><img src="p0.gif"></td><td><img src="p0.gif"></td></tr>
+<tr><td><img src="p0.gif"></td><td><img src="p0.gif"></td><td><img src="p0.gif"></td></tr>
+<tr><td><img src="p0.gif"></td><td><img src="p0.gif"></td><td><img src="p0.gif"></td></tr>
+</table>
+</td>
+</tr>
+<tr>
+<th>Bags Planted:</th><td colspan="2"><img id="imgSeed2" src="seed_turnip.png"/> x <SPAN id="spnBagsPl">10</SPAN></td>
+</tr>
+<tr id="trChickenFeed" style="display:none">
+<th>Chicken Feed:</th><td colspan="2"><img id="imgFeed" src="chicken_feed.gif"/> x <SPAN id="spnFeed">1</SPAN></td>
+</tr>
+<tr>
+<th>Cost per Bag:</th><td colspan="2"><SPAN id="spnBagCost">120</SPAN> G</td>
+</tr>
+<tr>
+<th>Crop Sells for:</th><td><SPAN id="spnSellPer1">60</SPAN> G</td><td>per crop</td>
+</tr>
+<tr>
+<th>&nbsp;</th><td><SPAN id="spnSellPerBag">540</SPAN> G</td><td>per bag planted</td>
+</tr>
+<tr>
+<th>&nbsp;</th><td><SPAN id="spnSellAllBags">5400</SPAN> G</td><td>for # bags specified</td>
+</tr>
+<tr>
+<th>&nbsp;</th><td><input class="OkBtn" type="Button" value="Ok" onclick="closeWindow()"/></td><td>&nbsp;</td>
+</tr>
+</table>
+<script>
+setScreen()
+</script>
+</BODY>
+</HTML>

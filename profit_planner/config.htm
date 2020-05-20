@@ -1,0 +1,124 @@
+<HTML>
+<HEAD>
+<TITLE>Config</TITLE>
+<STYLE>
+img {
+	cursor:hand;
+}
+
+.btn {
+	font-family:Microsoft Sans Serif;
+	font-size:8pt;
+	align:center;
+	width:44px;
+	position:relative;
+	top:3px;
+	cursor:hand;
+}
+</STYLE>
+<SCRIPT>
+var m_sEmptyImg = 'pl0.gif';
+var m_sFullImg  = 'pl1.gif';
+
+function toggle(obj) {
+	if (obj.src.indexOf(m_sEmptyImg) > -1) {
+		obj.src = m_sFullImg;
+		obj.flag = 1;
+	}
+	else {
+		obj.src = m_sEmptyImg;
+		obj.flag = 0;
+	}
+}
+
+function getFlag() {
+	var tblConfig = document.getElementById("tblConfig");
+	var sFlag = '';
+	var i;
+
+	for (i=0; i<tblConfig.cells.length; i++) {
+		sFlag += tblConfig.cells[i].childNodes[0].flag;
+	}
+
+	return sFlag;
+}
+
+function setFlag(sFlag) {
+	var i;
+	var tblConfig = document.getElementById("tblConfig");
+	var iFlagsToSet = Math.min(tblConfig.cells.length,sFlag.length);
+	var oThisImg;
+
+	for (i=0; i<iFlagsToSet; i++) {
+		oThisImg = tblConfig.cells[i].childNodes[0];
+
+		if (sFlag.charAt(i) == '0') {
+			oThisImg.flag = '0';
+			oThisImg.src = m_sEmptyImg;
+		}
+		else {
+			oThisImg.flag = '1';
+			oThisImg.src = m_sFullImg;
+		}
+	}
+}
+
+function saveConfig() {
+	window.returnValue = getFlag();
+	window.close();
+}
+
+function cancelConfig() {
+	if (m_sInputParam != 'none') {
+		window.returnValue = m_sInputParam;
+	}
+	else {
+		window.returnValue = -1;
+	}
+
+	window.close();
+}
+
+function checkUnload() {
+	if (!window.returnValue)  {
+		if (m_sInputParam != 'none') {
+			window.returnValue = m_sInputParam;
+		}
+		else {
+			window.returnValue = -1;
+		}
+	}
+}
+
+var m_sInputParam = window.dialogArguments;
+</SCRIPT>
+</HEAD>
+<BODY onunload="checkUnload()">
+<table id="tblConfig" cellpadding="0" cellspacing="0">
+<tr>
+<td><img src="pl1.gif" onclick="toggle(this)" flag="1" /></td>
+<td><img src="pl1.gif" onclick="toggle(this)" flag="1" /></td>
+<td><img src="pl1.gif" onclick="toggle(this)" flag="1" /></td>
+</tr>
+<tr>
+<td><img src="pl1.gif" onclick="toggle(this)" flag="1" /></td>
+<td><img src="pl1.gif" onclick="toggle(this)" flag="1" /></td>
+<td><img src="pl1.gif" onclick="toggle(this)" flag="1" /></td>
+</tr>
+<tr>
+<td><img src="pl1.gif" onclick="toggle(this)" flag="1" /></td>
+<td><img src="pl1.gif" onclick="toggle(this)" flag="1" /></td>
+<td><img src="pl1.gif" onclick="toggle(this)" flag="1" /></td>
+</tr>
+</table>
+<input type="Button" value="save" class="btn" onclick="saveConfig()"/>
+<input type="Button" value="cancel" class="btn" onclick="cancelConfig()"/>
+<SCRIPT>
+if (m_sInputParam != null) {
+	if (m_sInputParam != 'none') {
+		setFlag(m_sInputParam)
+	}
+}
+</SCRIPT>
+</BODY>
+</HTML>

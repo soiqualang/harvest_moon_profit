@@ -1,0 +1,1667 @@
+<HTML>
+<HEAD>
+<script src="crop.js"></script>
+<SCRIPT>
+function btnOver(obj) {
+	if (obj.tagName == "IMG") {
+		if (obj.idx=="del") {
+			var oRow = obj.parentElement.parentElement;
+			var bSaved = (oRow.saved == "0")?false:true;
+
+			if (bSaved) {
+				obj.title = "click to delete this row"
+				obj.src = 'tool_sickle_ble.png'
+			}
+			else {
+				obj.title = "cannot delete unsaved rows"
+				obj.src = 'tool_sickle_cur.gif'
+			}
+		}
+	}
+}
+
+function btnOut(obj) {
+	if (obj.tagName == "IMG") {
+		if (obj.idx=="del") {
+			obj.src = 'tool_sickle_mith.png'
+		}
+	}
+
+}
+
+function getDaySuffix(iNum) {
+	if (iNum < 1 || iNum > 30) return 'th';
+
+	var sResult = '';
+
+	switch(iNum) {
+	case 1:
+		sResult = 'st';
+		break;
+	case 2:
+		sResult = 'nd';
+		break;
+	case 3:
+		sResult = 'rd';
+		break;
+	case 21:
+		sResult = 'st';
+		break;
+	case 22:
+		sResult = 'nd';
+		break;
+	case 23:
+		sResult = 'rd';
+		break;
+	default:
+		sResult = 'th';
+		break;
+	}
+
+	return sResult;
+
+}
+
+function showData(obj) {
+	var oClickedRow = obj.parentElement.parentElement;
+	var iPlanted = parseInt(oClickedRow.dayIdx,10) + 1;
+
+	var sSeasonName = arrSeasonNames[m_iCurrentSeasonID];
+	var sPlanted = sSeasonName + ' ' + iPlanted + getDaySuffix(iPlanted);
+
+	var sRepl = '';
+	var tdReplant1 = document.getElementById("tdReplant1");
+	var bSaved = (oClickedRow.saved == 0)?false:true;
+
+	if (bSaved) {
+		if (oClickedRow.repl == '-1') {
+			sRepl = 'N\\A';
+		}
+		else {
+			sRepl = oClickedRow.repl;
+		}
+	}
+	else {
+		//not saved
+		if (tdReplant1.style.display == 'none') {
+			sRepl = 'N\\A';
+		}
+		else {
+			if (oClickedRow.repl == '-1') {
+				sRepl = 'N\\A';
+			}
+			else {
+				sRepl = oClickedRow.repl;
+			}
+		}
+	}
+
+
+	var sCropImg  = arrVegImages[oClickedRow.vegid];
+	var sSeedImg  = arrSeedImages[oClickedRow.vegid];
+	var sCropName = arrVegNames[oClickedRow.vegid];
+	var iNumUnits = parseInt(oClickedRow.cpb,10);
+	//sRepl
+	//sPlanted
+	var sConfig   		= oClickedRow.config
+	var iNumBags   		= parseInt(oClickedRow.nbags,10);
+	var oCrop 		 		= arrCrops[oClickedRow.vegid];
+	var iBagCost   		= parseInt(oCrop.buy,10);
+	var iSellPrice 		= parseInt(oCrop.sell,10);
+	var iSellPerBag 	= iNumUnits * iSellPrice;
+	var iSellAllBags 	= iNumBags * iSellPerBag;
+
+	var iSaved				= oClickedRow.saved;
+
+	showDataWindow(sCropImg, sSeedImg ,sCropName, iNumUnits, sRepl, sPlanted, sConfig, iNumBags, iBagCost, iSellPrice, iSellPerBag, iSellAllBags, iSaved);
+}
+
+function showDataWindow() {
+	var iNumArgs = showDataWindow.arguments.length;
+	var sReturnVal;
+	var sInputParams = '';
+	var iThisArg;
+
+	for (iThisArg=0; iThisArg < iNumArgs;iThisArg++) {
+		sInputParams += ',' + showDataWindow.arguments[iThisArg];
+	}
+
+	if (sInputParams.charAt(0) == ',') {
+		sInputParams = sInputParams.substring(1)
+	}
+
+	var sDialogHeight;
+	var sCurrCrop = showDataWindow.arguments[2];
+
+	if (sCurrCrop == 'Corn') {
+		sDialogHeight = "390px";
+	}
+	else {
+		sDialogHeight = "350px";
+	}
+
+	sReturnVal = window.showModalDialog("data.htm",sInputParams,"dialogWidth:265px;dialogHeight:" + sDialogHeight + ";dialogLeft:300;dialogTop:350;dialogHide:yes;edge:raised;help:no;resizable:no;scroll:no;status:no;unadorned:no")
+}
+
+var m_cmbCurrent = null;
+var m_iVeggieID  = 0;
+var m_iCurrentSeasonID = 0;
+var m_iCurrentRow = 1;
+var m_bLockSeason = false;		//disallow season change if row is saved
+
+function setSeason() {
+	var cmbSeasons = document.getElementById("cmbSeasons");
+	var iSeasonID  = parseInt(cmbSeasons.value,10);
+	m_iCurrentSeasonID = iSeasonID;
+
+	var cmbSpring = document.getElementById("cmbSpring");
+	var cmbSummer = document.getElementById("cmbSummer");
+	var cmbFall   = document.getElementById("cmbFall");
+
+	cmbSpring.style.display = 'none';
+	cmbSummer.style.display = 'none';
+	cmbFall.style.display = 'none';
+
+	eval(arrSeasonCrops[iSeasonID] + '.style.display = \'block\'');
+
+	var tblHead = document.getElementById("tblHead");
+
+	tblHead.rows[0].className = arrSeasonNames[iSeasonID].toLowerCase();
+
+	var spnTitle = document.getElementById("spnTitle");
+	spnTitle.innerText = arrSeasonNames[iSeasonID].toUpperCase();
+	spnTitle.className = arrSeasonNames[iSeasonID].toLowerCase() + 'title';
+
+	m_cmbCurrent = eval(arrSeasonCrops[iSeasonID]);
+	m_iVeggieID  = m_cmbCurrent.value;
+	setVeggieImg(m_cmbCurrent)
+
+	var tblCosts = document.getElementById("tblCosts");
+	tblCosts.className = 'cost c_' + arrSeasonNames[iSeasonID].toLowerCase()
+}
+
+function setVeggieImg(obj) {
+	var imgIcon 		= document.getElementById("imgIcon");
+	var idx 				= parseInt(obj.value,10);
+	imgIcon.src 		= arrVegImages[idx];
+	m_iVeggieID 		= idx;
+
+	var tblHead = document.getElementById("tblHead");
+	var oCurrRow = tblHead.rows[m_iCurrentRow];
+	oCurrRow.vegid = idx;
+
+	checkStats(obj,idx);
+}
+
+function checkStats(obj,iVegID) {
+	var imgStats = 	document.getElementById("imgStats");
+	var oCurrOpt = obj.options[obj.selectedIndex];
+	var iRegrow  = parseInt(oCurrOpt.reg,10);
+	var iHarv 	 = parseInt(oCurrOpt.har,10);
+
+	//show the plantOn
+	var cmbPlantOn = document.getElementById("cmbDay");
+	var iPlantDay = parseInt(cmbDay.value,10);
+
+	setPlantOnIcon(iPlantDay, true);	//sets the first plant on icon
+
+	var iHarvDay = iPlantDay + iHarv;
+	setHarvestIcon(iHarvDay,false);			//sets the first harvest icon
+
+	if (iRegrow == 0) {
+	   imgStats.src   = arrSeedImages[iVegID];
+	   imgStats.title = 'need to replant once harvested!\nharvest in ' + iHarv + ' days!';
+	   calcReplants(obj, iVegID);
+	   setChosenReplants(iPlantDay,iHarvDay,iHarv)
+	}
+	else {
+	   imgStats.src = 'tool_hoe_mith.png';
+	   imgStats.title = 'will regrow in ' + iRegrow + ' days!';
+	   hideReplants();
+	   setAutoReplants(iPlantDay,iHarvDay,iRegrow);
+	}
+}
+
+function setAutoReplants(iPlantOn, iFirstHarv, iRegrow) {
+	//iterates through the current row from the first harvest day
+	//to the end, adding reharv icons
+	var tblHead = document.getElementById("tblHead");
+	var oCurrRow = tblHead.rows[m_iCurrentRow];
+
+	var iNextHarv     = iFirstHarv + iRegrow;
+	var iNextHarvIdx  = iNextHarv + 1;
+	var oDayCell 			= oCurrRow.cells[iNextHarvIdx];
+
+	while (iNextHarv <= 30) {
+		oDayCell.childNodes[0].src = arrVegImages[m_iVeggieID];
+		iNextHarv += iRegrow;
+		iNextHarvIdx  = iNextHarv + 1;
+
+		if (iNextHarvIdx < oCurrRow.cells.length) {
+			oDayCell 			= oCurrRow.cells[iNextHarvIdx];
+		}
+	}
+}
+
+function setChosenReplants(iPlantDay,iHarvDay,iRegrow) {
+	var tblHead = document.getElementById("tblHead");
+	var oCurrRow = tblHead.rows[m_iCurrentRow];
+	var cmbReplants = document.getElementById("cmbReplants");
+
+	var iNumReplants = cmbReplants.value;
+	var i;
+	var iNextHarv 		= iHarvDay;
+	var iNextHarvIdx;
+	var oDayCell;
+
+	for (i=0;i<iNumReplants;i++) {
+		iNextHarv     += iRegrow;
+		iNextHarvIdx  = iNextHarv + 1;
+
+		if (iNextHarvIdx < oCurrRow.cells.length) {
+			oDayCell 			= oCurrRow.cells[iNextHarvIdx];
+			oDayCell.childNodes[0].src = arrVegImages[m_iVeggieID];
+		}
+
+	}
+}
+
+function calcReplants(obj, iVegID) {
+	var oCurrOpt  = obj.options[obj.selectedIndex];
+	var iHarv 	  = parseInt(oCurrOpt.har,10);
+
+	var cmbDay 	  = document.getElementById("cmbDay");
+	var iPlantDay = parseInt(cmbDay.value,10);
+
+	var iDaysLeft = 30 - (iPlantDay + iHarv);
+
+	if (iDaysLeft >= iHarv) {
+		var iNumReplants = Math.floor(iDaysLeft/iHarv)
+		showReplants();
+		setReplantsCmb(iNumReplants);
+
+	}
+	else {
+		showReplants();
+		setReplantsCmb(0);
+	}
+}
+
+function setReplantsCmb(iNum) {
+
+	if (iNum < 0 || iNum > 30) return;
+
+	var cmbReplants = document.getElementById("cmbReplants");
+	var iNumOpts 		= cmbReplants.options.length;
+	var iNumReq     = iNum + 1;						//this is how many options there should be for this request to be fulfilled
+
+	var iCurrIdx;   //this will be the index to the first new option
+	var iCurrOpts = iNumOpts;
+	var oOpt;
+
+	if (iNumReq > iNumOpts) {
+		//add new options
+		while (iCurrOpts < iNumReq) {
+
+			oOpt = document.createElement("OPTION");
+			cmbReplants.options.add(oOpt);
+			oOpt.innerText = iCurrOpts;
+			oOpt.value		 = iCurrOpts;
+
+			iCurrOpts = cmbReplants.options.length;
+		}
+	}
+	else if (iNumReq < iNumOpts) {
+		//remove options
+
+		while (iCurrOpts > iNumReq) {
+			cmbReplants.options.remove(iCurrOpts-1)
+
+			iCurrOpts = cmbReplants.options.length;
+		}
+	}
+
+}
+
+function showReplants() {
+
+	var tdReplant1 = document.getElementById("tdReplant1");
+	var tdReplant2 = document.getElementById("tdReplant2");
+	var tdReplant3 = document.getElementById("tdReplant3");
+	var tdReplant4 = document.getElementById("tdReplant4");
+	var cmbReplants = document.getElementById("cmbReplants");
+
+	tdReplant1.style.display = 'block';
+	tdReplant2.style.display = 'block';
+	tdReplant3.style.display = 'block';
+	tdReplant4.style.display = 'block';
+}
+
+function hideReplants() {
+
+	var tdReplant1 = document.getElementById("tdReplant1");
+	var tdReplant2 = document.getElementById("tdReplant2");
+	var tdReplant3 = document.getElementById("tdReplant3");
+	var tdReplant4 = document.getElementById("tdReplant4");
+
+	tdReplant1.style.display = 'none';
+	tdReplant2.style.display = 'none';
+	tdReplant3.style.display = 'none';
+	tdReplant4.style.display = 'none';
+}
+
+function changePlantOn() {
+	//move the plant on icon
+	//move the harvest icon
+
+	if (!m_cmbCurrent) {
+		m_cmbCurrent = document.getElementById("cmbSpring");
+	}
+
+	checkStats(m_cmbCurrent, m_iVeggieID)
+}
+
+function changeReplants(obj) {
+	if (!m_cmbCurrent) {
+		m_cmbCurrent = document.getElementById("cmbSpring");
+	}
+
+	checkStats(m_cmbCurrent, m_iVeggieID)
+}
+
+function clearIcons() {
+	var tblHead = document.getElementById("tblHead");
+	var oCurrRow = tblHead.rows[m_iCurrentRow];
+	var i;
+
+	for (i=2; i<32; i++) {
+		oCurrRow.cells[i].childNodes[0].src = 'blank.gif';
+	}
+}
+
+function setPlantOnIcon(iPlantOn, bWithClear) {
+	if (iPlantOn < 1 || iPlantOn > 30) return;
+
+	if (bWithClear==null) {
+		bWithClear = true;
+	}
+
+	if (bWithClear==true) {
+		clearIcons();
+	}
+
+	var tblHead = document.getElementById("tblHead");
+	var oCurrRow = tblHead.rows[m_iCurrentRow];
+	var iCellIdx = iPlantOn + 1;
+	var oPlantDay = oCurrRow.cells[iCellIdx];
+	var oDayIcon  = oPlantDay.childNodes[0];
+
+	oDayIcon.src = arrSeedImages[m_iVeggieID];
+}
+
+function setHarvestIcon(iHarv, bWithClear) {
+	if (iHarv < 1 || iHarv > 30) return;
+
+	if (bWithClear==null) {
+			bWithClear = true;
+	}
+
+	if (bWithClear==true) {
+		clearIcons();
+	}
+
+	var tblHead = document.getElementById("tblHead");
+	var oCurrRow = tblHead.rows[m_iCurrentRow];
+	var iCellIdx = iHarv + 1;
+	var oHarvDay = oCurrRow.cells[iCellIdx];
+	var oDayIcon  = oHarvDay.childNodes[0];
+
+	oDayIcon.src = arrVegImages[m_iVeggieID];
+}
+
+function lockSeason() {
+	var cmbSeasons = document.getElementById("cmbSeasons");
+	m_bLockSeason = true;
+	cmbSeasons.disabled = m_bLockSeason;
+	cmbSeasons.title = "Once a row is saved,\nthe season cannot be changed.\nReset your browser to\nselect a different season"
+}
+
+function unlockSeason() {
+	var cmbSeasons = document.getElementById("cmbSeasons");
+	m_bLockSeason = false;
+	cmbSeasons.disabled = m_bLockSeason;
+	cmbSeasons.title = "";
+}
+
+function saveRow() {
+	if (!m_bLockSeason) {
+		lockSeason()
+	}
+
+	if (!m_cmbCurrent) {
+		var sCurrentCmbId = arrSeasonCrops[m_iCurrentSeasonID];
+		m_cmbCurrent = document.getElementById(sCurrentCmbId);
+	}
+
+	//change style of current row
+	var tblHead = document.getElementById("tblHead");
+	var oCurrRow = tblHead.rows[m_iCurrentRow];
+	var sCurrSeason = tblHead.rows[0].className;
+
+	oCurrRow.className = sCurrSeason;
+
+	//***** SAVE STATE ********
+	//save the data for the current controls
+	//save replants
+	oCurrRow.cmbidx = m_cmbCurrent.selectedIndex;
+	var cmbReplants = document.getElementById("cmbReplants");
+	var tdReplants  = cmbReplants.parentElement;
+
+	if (tdReplants.style.display == 'none') {
+		oCurrRow.repl = -1;
+	}
+	else {
+		oCurrRow.repl = cmbReplants.selectedIndex;
+	}
+
+	//save day of planting
+	var cmbDay = document.getElementById("cmbDay");
+	var dayIdx = cmbDay.selectedIndex;
+	oCurrRow.dayIdx = dayIdx;
+
+	var cmbNumBags = document.getElementById("cmbNumBags");
+	var iNumBags   = cmbNumBags.value;
+	oCurrRow.nbags = iNumBags;
+
+	oCurrRow.saved="1"
+	//***** END SAVE STATE ********
+
+	//set all cells to the "saved" style
+	var i;
+	for (i=2; i<oCurrRow.cells.length;i++) {
+		oCurrRow.cells[i].className = 'day alt'
+	}
+
+	//add new row to plan table
+	var oNewRow = tblHead.insertRow();
+	oNewRow.config = '111111111';
+	oNewRow.cpb		 = '9';
+	oNewRow.cmbidx = '0';
+	oNewRow.repl   = '0';
+	oNewRow.dayIdx = '0';
+	oNewRow.saved  = '0';
+	oNewRow.vegid  = '0';
+	oNewRow.nbags  = '1';
+	oNewRow.className = 'unsaved';
+	setCPBCell(9);
+
+	var oNewCell;
+	var oNewImage;
+	var j;
+
+	for (j=0; j<32; j++) {
+		oNewCell = oNewRow.insertCell();
+		oNewCell.className = "day";
+		oNewImage = new Image();
+		oNewImage.src = 'blank.gif';
+
+		oNewCell.appendChild(oNewImage);
+	}
+
+	//configure the two button cells at the beginning
+	var fnDelHandler_ovr = oCurrRow.cells[0].childNodes[0].onmouseover;
+	var fnDelHandler_out = oCurrRow.cells[0].childNodes[0].onmouseout;
+	var fnDelHandler_clk = oCurrRow.cells[0].childNodes[0].onclick;
+
+	var fnModHandler_clk = oCurrRow.cells[1].childNodes[0].onclick;
+
+	var oDelBtn = oNewRow.cells[0].childNodes[0];
+	var oModBtn = oNewRow.cells[1].childNodes[0];
+
+	oNewRow.cells[0].className = 'btn';
+	oDelBtn.className   = 'btn';
+	oDelBtn.src 			  = 'tool_sickle_mith.png';
+	oDelBtn.title 	 	  = 'delete this row';
+	oDelBtn.idx				  = 'del';
+	oDelBtn.onmouseover = fnDelHandler_ovr;
+	oDelBtn.onmouseout  = fnDelHandler_out;
+	oDelBtn.onclick     = fnDelHandler_clk;
+
+	oNewRow.cells[1].className = 'btn';
+	oModBtn.className   = 'btn';
+	oModBtn.src 			  = 'start_sells.png';
+	oModBtn.title 		  = 'data for this row';
+	oModBtn.idx				  = 'mod';
+	oModBtn.onclick			= fnModHandler_clk;
+
+	//add the first icon
+	m_iCurrentRow = oNewRow.rowIndex;
+
+	oNewRow.cells[2].childNodes[0].src = arrSeedImages[m_iVeggieID]
+
+	setVeggieImg(m_cmbCurrent)
+	setFieldPercBar();
+}
+
+function getConfig() {
+	var tblHead 		= document.getElementById("tblHead");
+	var tdCPB				= document.getElementById("tdCPB"); //Crops Per Bag data cell
+
+	var oCurrRow 		= tblHead.rows[m_iCurrentRow];
+	var sInputFlag 	= oCurrRow.config;
+
+	var sReturnVal;
+
+	if (!sInputFlag) {
+		sInputFlag = 'none';
+	}
+
+	sReturnVal = window.showModalDialog("config.htm",sInputFlag,"dialogWidth:100px;dialogHeight:150px;dialogLeft:300;dialogTop:350;dialogHide:yes;edge:raised;help:no;resizable:no;scroll:no;status:no;unadorned:no")
+
+	if (sReturnVal != sInputFlag && sReturnVal != -1) {
+		oCurrRow.config = sReturnVal;
+
+		var i;
+		var ctr=0;
+
+		for(i=0; i<sReturnVal.length;i++) {
+			if (sReturnVal.charAt(i) == '1') ctr++;
+		}
+
+		tdCPB.innerText = ctr;
+		oCurrRow.cpb		= ctr;
+	}
+}
+
+function setConfigMax() {
+	var tblHead 		= document.getElementById("tblHead");
+	var tdCPB				= document.getElementById("tdCPB"); //Crops Per Bag data cell
+	var oCurrRow 		= tblHead.rows[m_iCurrentRow];
+
+	oCurrRow.config = '111111111';
+	tdCPB.innerText = 9;
+	oCurrRow.cpb	= 9;
+}
+
+function setCPBCell(iCPB) {
+	var tdCPB				= document.getElementById("tdCPB");
+	tdCPB.innerText = iCPB;
+}
+
+function deleteRow(obj) {
+	var tblHead  = document.getElementById("tblHead");
+	var oCurrRow = obj.parentElement.parentElement;
+	var bIsSaved = oCurrRow.saved;
+
+	if (bIsSaved==0) {
+		alert('Cannot delete a row that is not saved');
+		return;
+	}
+	else {
+		var idx = parseInt(oCurrRow.rowIndex,10);
+		var bConfirm = confirm('Do you really want to delete this row?');
+
+		if (bConfirm) {
+			tblHead.deleteRow(idx);
+			m_iCurrentRow--;
+			setFieldPercBar()
+			//need to delete profitsheet row
+		}
+	}
+}
+
+function changeNumBags() {
+	if (!m_cmbCurrent) {
+		m_cmbCurrent = document.getElementById("cmbSpring");
+	}
+
+	checkStats(m_cmbCurrent, m_iVeggieID)
+}
+
+var m_arrProfits = new Array();
+var m_arrExpenses = new Array();
+var m_arrIncome   = new Array();
+
+function initCostArray(arr) {
+	var i;
+
+	for (i=0; i<32; i++) {
+		arr[i]=0;
+	}
+}
+
+function formatCurr(sNum) {
+	var iNum = parseInt(sNum,10);
+	sNum = '' + sNum + '';
+
+	if (isNaN(iNum)) return sNum;
+
+	if (iNum <= 999) {
+		return sNum;
+	}
+
+	var iNumLen   = sNum.length;
+
+	var i				  = 0;
+	var iThisChar = iNumLen - 1;
+	var sNewNum   = ''
+
+
+	for (i;i<iNumLen;i++) {
+
+		if ((i%3==0) && (i!=0)) {
+			sNewNum = sNum.charAt(iThisChar) + ',' + sNewNum;
+		}
+		else {
+			sNewNum = sNum.charAt(iThisChar) + sNewNum;
+		}
+
+		iThisChar--;
+	}
+
+	return sNewNum;
+}
+
+function calcCostRow() {
+	var tblHead = document.getElementById("tblHead");
+	var iCurrRow = 1;
+	var iCurrCell = 3;
+	var oCurrCell;
+
+	initCostArray(m_arrExpenses);
+	initCostArray(m_arrIncome);
+	initCostArray(m_arrProfits);
+
+	var iPlantOn = 1;
+	var iNumBags = 1;
+	var iVegId   = 0;
+	var iCPB   	 = 9;
+	var iSaved   = 0;
+	var iDayIdx = 0;		//index into the cost array
+	var iRepl   = 0;		//number of replants
+
+	var iPerHarvestGross = 0;
+	var oCropObj;
+	var iTotBagExpense = 0;
+
+	//iterate through all rows
+
+	for (iCurrRow; iCurrRow < tblHead.rows.length; iCurrRow++) {
+		iPlantOn = parseInt(tblHead.rows[iCurrRow].dayIdx,10);	//zero based index
+		iCurrCell = iPlantOn + 3;
+
+		iNumBags = parseInt(tblHead.rows[iCurrRow].nbags,10);
+		iVegId   = parseInt(tblHead.rows[iCurrRow].vegid,10);
+		iCPB   	 = parseInt(tblHead.rows[iCurrRow].cpb,10);
+		iSaved   = parseInt(tblHead.rows[iCurrRow].saved,10);
+		iRepl		 = parseInt(tblHead.rows[iCurrRow].repl,10);
+
+		if (iSaved == 1) {
+				oCropObj = arrCrops[iVegId];
+				oCropObj.setSquares(iCPB);
+				oCropObj.setBags(iNumBags);
+
+				iTotBagExpense   = oCropObj.buy * oCropObj.bags;
+				iPerHarvestGross = oCropObj.getGross();
+
+				if (iRepl > 0) {
+					iTotBagExpense += iTotBagExpense * iRepl
+				}
+
+				m_arrExpenses[iPlantOn+1] += iTotBagExpense;
+
+				for (iCurrCell; iCurrCell < 32; iCurrCell++) {
+					oCurrCell = tblHead.rows[iCurrRow].cells[iCurrCell];
+
+					if (oCurrCell.childNodes[0].src.indexOf('blank.gif') == -1) {
+						iDayIdx = iCurrCell-1;
+						m_arrIncome[iDayIdx] += iPerHarvestGross;
+					}
+				}
+		}	//end if saved==1
+	}
+
+	setCostSheet()
+}
+
+function setCostSheet() {
+	var tblCosts = document.getElementById("tblCosts");
+	var oCurrRow;
+	var iExpenseCell = 1;
+	var iIncomeCell  = 2;
+	var iProfitCell  = 3;
+	var iProfit = 0;
+	var sProfit = '';
+
+	var i;
+
+	for (i=1; i<=30; i++) {
+		oCurrRow = tblCosts.rows[i];
+		oCurrRow.cells[iExpenseCell].innerText = m_arrExpenses[i];
+		oCurrRow.cells[iIncomeCell].innerText  =  m_arrIncome[i];
+		iProfit = m_arrIncome[i] - m_arrExpenses[i];
+		m_arrProfits[i] = iProfit;
+
+		if (iProfit <0) {
+			sProfit = '(' + Math.abs(iProfit) + ')';
+		}
+		else {
+			sProfit = iProfit;
+		}
+
+		oCurrRow.cells[iProfitCell].innerText = sProfit;
+	}
+
+	calcTotals();
+}
+
+function calcTotals() {
+	var tblCosts   = document.getElementById("tblCosts");
+	var oTotalsRow = tblCosts.rows[31];
+
+	var iTotalExp    = 0;
+	var iTotalIncome = 0;
+	var iTotalProfit = 0;
+
+	var sTotalExp = '';
+	var sTotalIncome = '';
+	var sTotalProfit = '';
+
+	var i;
+
+	for (i=0; i < m_arrProfits.length; i++) {
+		iTotalExp 		+= m_arrExpenses[i];
+		iTotalIncome 	+= m_arrIncome[i];
+		iTotalProfit  += m_arrProfits[i];
+	}
+
+	if (iTotalExp < 0) {
+		sTotalExp = '(' + Math.abs(iTotalExp) + ')';
+	}
+	else {
+		sTotalExp = Math.abs(iTotalExp)
+	}
+
+	if (iTotalIncome < 0) {
+			sTotalIncome = '(' + Math.abs(iTotalIncome) + ')';
+		}
+		else {
+			sTotalIncome = Math.abs(iTotalIncome)
+	}
+
+	if (iTotalProfit < 0) {
+				sTotalProfit = '(' + Math.abs(iTotalProfit) + ')';
+			}
+			else {
+				sTotalProfit = Math.abs(iTotalProfit)
+	}
+
+	oTotalsRow.cells[1].innerText = formatCurr(sTotalExp);
+	oTotalsRow.cells[2].innerText = formatCurr(sTotalIncome);
+	oTotalsRow.cells[3].innerText = formatCurr(sTotalProfit);
+}
+
+function calcOver(obj) {
+	var sSeasonName = arrSeasonNames[m_iCurrentSeasonID];
+	var sClassName = 'btn' + sSeasonName;
+
+	if (obj.tagName == "IMG") {
+		obj.className = 'btn ' + sClassName;
+	}
+}
+
+function calcOut(obj) {
+	if (obj.tagName == "IMG") {
+		obj.className = 'btn'
+	}
+}
+
+function initCombos() {
+	var cmbSeasons = document.getElementById("cmbSeasons");
+	var cmbSpring = document.getElementById("cmbSpring");
+	var cmbSummer = document.getElementById("cmbSummer");
+	var cmbFall = document.getElementById("cmbFall");
+	var cmbReplants = document.getElementById("cmbReplants");
+	var cmbDay = document.getElementById("cmbDay");
+	var cmbNumBags = document.getElementById("cmbNumBags");
+
+	cmbSeasons.selectedIndex 	= 0;
+
+	cmbSpring.selectedIndex		= 0;
+	cmbSpring.style.display 	= 'block';
+
+	cmbSummer.selectedIndex		= 0;
+	cmbSummer.style.display 	= 'none';
+
+	cmbFall.selectedIndex			= 0;
+	cmbFall.style.display 		= 'none';
+
+	cmbReplants.selectedIndex = 0;
+	cmbReplants.style.display = 'block';
+
+	cmbDay.selectedIndex			= 0;
+	cmbNumBags.selectedIndex	= 0;
+
+}
+
+function max_clk() {
+	var cmbReplants = document.getElementById("cmbReplants");
+
+	var iNumOptions = cmbReplants.options.length;
+	cmbReplants.selectedIndex = iNumOptions-1;
+
+	changeReplants(cmbReplants)
+}
+
+function prv_clk() {
+	var cmbDay = document.getElementById("cmbDay");
+
+	if (cmbDay.selectedIndex == 0) return;
+	else {
+		var idx = cmbDay.selectedIndex;
+		cmbDay.selectedIndex = idx - 1;
+		changePlantOn()
+	}
+}
+
+function nxt_clk() {
+	var cmbDay = document.getElementById("cmbDay");
+
+	if (cmbDay.selectedIndex == 29) return;
+	else {
+		var idx = cmbDay.selectedIndex;
+		cmbDay.selectedIndex = idx + 1;
+		changePlantOn()
+	}
+}
+
+var m_iNumRangeFrom = 1;
+
+function p10_clk() {
+	var cmbNumBags = document.getElementById("cmbNumBags");
+
+	m_iNumRangeFrom += 10;
+
+	if (m_iNumRangeFrom > 90) m_iNumRangeFrom = 90;
+
+	var i;
+	var iThisNum = m_iNumRangeFrom;
+
+	for (i = 0; i<cmbNumBags.options.length;i++) {
+		cmbNumBags.options[i].value = iThisNum;
+		cmbNumBags.options[i].innerText = iThisNum;
+
+		iThisNum++;
+	}
+}
+
+function m10_clk() {
+	var cmbNumBags = document.getElementById("cmbNumBags");
+
+	m_iNumRangeFrom -= 10;
+
+	if (m_iNumRangeFrom < 1) m_iNumRangeFrom = 1;
+
+	var i;
+	var iThisNum = m_iNumRangeFrom;
+
+	for (i = 0; i<cmbNumBags.options.length;i++) {
+		cmbNumBags.options[i].value = iThisNum;
+		cmbNumBags.options[i].innerText = iThisNum;
+
+		iThisNum++;
+	}
+}
+
+function btn_ovr(obj) {
+	switch (obj.id) {
+		case 'imgMax':
+			obj.src = 'max_o.gif';
+			break;
+		case 'imgPrv':
+			obj.src = 'prv_o.gif';
+			break;
+		case 'imgNxt':
+			obj.src = 'nxt_o.gif';
+			break;
+		case 'imgP10':
+			obj.src = 'p10_o.gif';
+			break;
+		case 'imgM10':
+			obj.src = 'm10_o.gif';
+			break;
+		case 'imgCfg':
+			obj.src = 'p1.gif';
+			break;
+		case 'imgMaxCfg':
+			obj.src = 'max_o.gif';
+			break;
+	}
+}
+
+function btn_out(obj) {
+	switch (obj.id) {
+		case 'imgMax':
+			obj.src = 'max.gif';
+			break;
+		case 'imgPrv':
+			obj.src = 'prv.gif';
+			break;
+		case 'imgNxt':
+			obj.src = 'nxt.gif';
+			break;
+		case 'imgP10':
+			obj.src = 'p10.gif';
+			break;
+		case 'imgM10':
+			obj.src = 'm10.gif';
+			break;
+		case 'imgCfg':
+			obj.src = 'p0.gif';
+			break;
+		case 'imgMaxCfg':
+			obj.src = 'max.gif';
+			break;
+	}
+}
+
+function showShopList() {
+	var tblHead = document.getElementById("tblHead");
+	var iCurrRow;
+	var oCurrRow;
+	var iVegId;
+	var iNumBags;
+	var iCPB;
+	var iRepl;
+
+	var arrNumBags = new Array();
+	initCostArray(arrNumBags);
+
+	for (iCurrRow = 1; iCurrRow < tblHead.rows.length; iCurrRow++) {
+		oCurrRow = tblHead.rows[iCurrRow];
+
+		if (oCurrRow.saved == "1") {
+			iVegId   = parseInt(tblHead.rows[iCurrRow].vegid,10);
+			iNumBags = parseInt(tblHead.rows[iCurrRow].nbags,10);
+			iCPB   	 = parseInt(tblHead.rows[iCurrRow].cpb,10);
+			iSaved   = parseInt(tblHead.rows[iCurrRow].saved,10);
+			iRepl		 = parseInt(tblHead.rows[iCurrRow].repl,10);
+
+			if (iRepl > -1) {
+				arrNumBags[iVegId] += iNumBags * (iRepl + 1);
+			}
+			else {
+				arrNumBags[iVegId] += iNumBags;
+			}
+		}
+	}
+
+	var sInputParams;
+
+	 sInputParams = arrNumBags;
+
+	//open window with arrNumBags
+		sReturnVal = window.showModalDialog("shoplist.htm",sInputParams,"dialogWidth:255px;dialogHeight:300px;dialogLeft:300;dialogTop:350;dialogHide:yes;edge:raised;help:no;resizable:no;scroll:no;status:no;unadorned:no")
+}
+
+</SCRIPT>
+<STYLE>
+body {
+	font-family:Microsoft Sans Serif, Helvetica, Arial, Sans Serif;
+	font-size:9pt;
+}
+
+td {
+	padding:4px;
+	border:solid 1px #C0C0C0;
+	height:20px;
+	font-size:9pt;
+	width:20px;
+	text-align:center;
+}
+
+.maintable {
+	border:solid 1px black;
+}
+
+tr.fall td.alt {
+	background-color:#FFE0E0;
+}
+
+tr.spring td.alt {
+	background-color:#E0FFE0;
+}
+
+tr.summer td.alt {
+	background-color:#FFFFE0;
+}
+
+.bar {
+	border:solid 1px red;
+	height:20px;
+	width:98px;
+	padding-left:5px;
+	padding-right:5px;
+}
+
+td.btn {
+	background-color:#E0F0FF;
+}
+
+img.btn {
+	cursor:hand;
+}
+
+SELECT {
+	font-family:Microsoft Sans Serif, Helvetica, Arial, Sans Serif;
+	font-size:9pt;
+	width:100px;
+}
+
+.springTitle {
+	color:#50BF50;
+
+}
+
+.summerTitle {
+	color:#BFBF50;
+}
+
+.fallTitle {
+	color:#BF5050;
+}
+
+.day {
+	width:20px;
+}
+
+.inputButton {
+	font-family:Microsoft Sans Serif, Helvetica, Arial, Sans Serif;
+	font-size:9pt;
+}
+
+.unsaved {
+		background-color:white;
+}
+
+
+@media print {
+	.unsaved {
+			display:none;
+	}
+
+	td.btn {
+		display:none;
+	}
+
+	img.btn {
+		display:none;
+	}
+
+	.tdhdr {
+		display:none;
+	}
+
+	.control_panel {
+		display:none;
+	}
+}
+
+
+</STYLE>
+</HEAD>
+<BODY onload="initCombos()">
+<H2 id="spnTitle" class="springTitle">SPRING</H2>
+<table id="tblHead" class="maintable"cellspacing="0" cellpadding="0" border="0">
+<tr class="spring">
+<td style="width:26px;" class="tdhdr">&nbsp;</td><td style="width:25px;" class="tdhdr">&nbsp;</td>
+<td class="day alt">1</td><td class="day">2</td><td class="day alt">3</td><td class="day">4</td><td class="day alt">5</td><td class="day">6</td><td class="day alt">7</td>
+<td class="day">8</td><td class="day alt">9</td><td class="day">10</td><td class="day alt">11</td><td class="day">12</td><td class="day alt">13</td><td class="day">14</td>
+<td class="day alt">15</td><td class="day">16</td><td class="day alt">17</td><td class="day">18</td><td class="day alt">19</td><td class="day">20</td><td class="day alt">21</td>
+<td class="day">22</td><td class="day alt">23</td><td class="day">24</td><td class="day alt">25</td><td class="day">26</td><td class="day alt">27</td><td class="day">28</td>
+<td class="day alt">29</td><td class="day">30</td>
+</tr>
+<tr config="111111111" cpb="9" cmbidx="0" repl="0" dayIdx="0" saved="0" vegid="0" nbags="1" class="unsaved">
+<td class="btn"><img class="btn" src="tool_sickle_mith.png" title="click to delete this row" idx="del" onmouseover="btnOver(this)" onmouseout="btnOut(this)" onclick="deleteRow(this)"/></td>
+<td class="btn"><img class="btn" src="start_sells.png" title="data for this row" idx="mod" onclick="showData(this)"/></td>
+<td class="day"><IMG src="seed_turnip.png"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td>
+<td class="day"><IMG src="veg_turnip.png"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td>
+<td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td>
+<td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td>
+<td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td>
+<td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td>
+<td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td>
+<td class="day"><IMG src="blank.gif"/></td><td class="day"><IMG src="blank.gif"/></td>
+</tr>
+</table>
+<br/>
+<table id="tblControls" class="control_panel" border="0">
+<tr><td style="width:100px;text-align:right;"><B>Season:</B></td>
+<td>
+<SELECT id="cmbSeasons" onchange="setSeason()" title="">
+<OPTION value="0">Spring</OPTION>
+<OPTION value="1">Summer</OPTION>
+<OPTION value="2">Fall</OPTION>
+<SELECT>
+</td>
+</tr>
+<tr><td style="width:100px;text-align:right;"><B>Crop:</B></td>
+<td>
+<SELECT id="cmbSpring" style="display:block" onchange="setVeggieImg(this)">
+<OPTION value="0" reg="0" har="4">Turnip</OPTION>
+<OPTION value="3" reg="0" har="7">Potato</OPTION>
+<OPTION value="6" reg="5" har="9">Cucumber</OPTION>
+<OPTION value="9" reg="0" har="14">Cabbage</OPTION>
+<OPTION value="12" reg="2" har="8">Strawberries</OPTION>
+</SELECT>
+<SELECT id="cmbSummer" style="display:none" onchange="setVeggieImg(this)">
+<OPTION value="1" reg="3"  har="10">Tomato</OPTION>
+<OPTION value="4" reg="3"  har="15">Corn</OPTION>
+<OPTION value="7" reg="0"  har="8">Onion</OPTION>
+<OPTION value="10" reg="5" har="20">Pineapple</OPTION>
+<OPTION value="13" reg="0" har="15">Pumpkin </OPTION>
+</SELECT>
+<SELECT id="cmbFall" style="display:none" onchange="setVeggieImg(this)">
+<OPTION value="2" reg="3"  har="10">Eggplant</OPTION>
+<OPTION value="5" reg="0"  har="8">Carrot</OPTION>
+<OPTION value="8" reg="2"  har="6">Sweet Potato</OPTION>
+<OPTION value="11" reg="2"  har="8">Green Pepper</OPTION>
+<OPTION value="14" reg="0"  har="6">Spinach</OPTION>
+</SELECT>
+</td>
+<td><img id="imgIcon" src="veg_turnip.png"/></td>
+<td><img id="imgStats" src="seed_turnip.png" title="need to replant once harvested!"/></td>
+<td id="tdReplant1" style="display:block;">Replant?</td>
+<td id="tdReplant4"><img id="imgMax" src="max.gif" alt="click to select maximum replants" class="btn" onmouseover="btn_ovr(this)" onmouseout="btn_out(this)" onclick="max_clk()"/></td>
+<td id="tdReplant2" style="display:block;">
+<SELECT id="cmbReplants" style="width:40px;" onchange="changeReplants(this)">
+<OPTION value="0">0</OPTION>
+<OPTION value="1">1</OPTION>
+<OPTION value="2">2</OPTION>
+<OPTION value="3">3</OPTION>
+<OPTION value="4">4</OPTION>
+<OPTION value="5">5</OPTION>
+<OPTION value="6">6</OPTION>
+</SELECT>
+</td>
+<td id="tdReplant3" style="display:block;">times</td>
+</tr>
+<tr><td style="width:100px;text-align:right;"><B>Plant Day:</B></td>
+<td>
+<SELECT id="cmbDay" onchange="changePlantOn()">
+<OPTION value="1">1st</OPTION>
+<OPTION value="2">2nd</OPTION>
+<OPTION value="3">3rd</OPTION>
+<OPTION value="4">4th</OPTION>
+<OPTION value="5">5th</OPTION>
+<OPTION value="6">6th</OPTION>
+<OPTION value="7">7th</OPTION>
+<OPTION value="8">8th</OPTION>
+<OPTION value="9">9th</OPTION>
+<OPTION value="10">10th</OPTION>
+<OPTION value="11">11th</OPTION>
+<OPTION value="12">12th</OPTION>
+<OPTION value="13">13th</OPTION>
+<OPTION value="14">14th</OPTION>
+<OPTION value="15">15th</OPTION>
+<OPTION value="16">16th</OPTION>
+<OPTION value="17">17th</OPTION>
+<OPTION value="18">18th</OPTION>
+<OPTION value="19">19th</OPTION>
+<OPTION value="20">20th</OPTION>
+<OPTION value="21">21st</OPTION>
+<OPTION value="22">22nd</OPTION>
+<OPTION value="23">23rd</OPTION>
+<OPTION value="24">24th</OPTION>
+<OPTION value="25">25th</OPTION>
+<OPTION value="26">26th</OPTION>
+<OPTION value="27">27th</OPTION>
+<OPTION value="28">28th</OPTION>
+<OPTION value="29">29th</OPTION>
+<OPTION value="30">30th</OPTION>
+</SELECT>
+</td>
+<td><img id="imgPrv" class="btn" src="prv.gif" alt="click to select the previous day" onmouseover="btn_ovr(this)" onmouseout="btn_out(this)" onclick="prv_clk()"/></td>
+<td><img id="imgNxt" class="btn" src="nxt.gif" alt="click to select the next day" onmouseover="btn_ovr(this)" onmouseout="btn_out(this)" onclick="nxt_clk()"/></td>
+</tr>
+<tr><td style="width:100px;text-align:right;"><B>Crops per bag:</B></td>
+<td id="tdCPB" style="width:95px;text-align:right;">9</td>
+<td><img id="imgCfg" src="p0.gif" class="btn" alt="click to configure field for each bag of this type" onmouseover="btn_ovr(this)" onmouseout="btn_out(this)" onclick="getConfig()"/></td>
+<td><img id="imgMaxCfg" src="max.gif" class="btn" alt="set configuration to maxmimum" onmouseover="btn_ovr(this)" onmouseout="btn_out(this)" onclick="setConfigMax()"/></td>
+</tr>
+<tr><td style="width:100px;text-align:right;"><B>Bags to plant:</B></td>
+<td id="tdNumBags" style="width:95px;text-align:right;">
+<SELECT id="cmbNumBags" onchange="changeNumBags()">
+<OPTION value="1">1</OPTION>
+<OPTION value="2">2</OPTION>
+<OPTION value="3">3</OPTION>
+<OPTION value="4">4</OPTION>
+<OPTION value="5">5</OPTION>
+<OPTION value="6">6</OPTION>
+<OPTION value="7">7</OPTION>
+<OPTION value="8">8</OPTION>
+<OPTION value="9">9</OPTION>
+<OPTION value="10">10</OPTION>
+</SELECT>
+</td>
+<td><img id="imgM10" src="m10.gif" class="btn" alt="click to reduce selection range" onmouseover="btn_ovr(this)" onmouseout="btn_out(this)" onclick="m10_clk()"/></td>
+<td><img id="imgP10" src="p10.gif" class="btn" alt="click to increase selection range" onmouseover="btn_ovr(this)" onmouseout="btn_out(this)" onclick="p10_clk()"/></td>
+</tr>
+<tr>
+<td><img src="start_ranchs.png" class="btn" alt="click to show shopping list" onclick="showShopList()"/></td>
+<td><input type="Button" value="Save Row" class="inputButton" onclick="saveRow()"/></td>
+</tr>
+</table>
+<br/>
+<hr>
+<!-- *********** COST SHEET STARTS HERE ************ -->
+<style>
+.btnSpring {
+	border-top:solid 1px #C0CFC0;
+	border-left:solid 1px #C0CFC0;
+	border-right:solid 2px #006600;
+	border-bottom:solid 2px #006600;
+	background-color:#E0FFE0;
+}
+
+.btnFall {
+	border-top:solid 1px #CFC0C0;
+	border-left:solid 1px #CFC0C0;
+	border-right:solid 2px #660000;
+	border-bottom:solid 2px #660000;
+	background-color:#FFE0E0;
+}
+
+.btnSummer {
+	border-top:solid 1px #CFCFC0;
+	border-left:solid 1px #CFCFC0;
+	border-right:solid 2px #666600;
+	border-bottom:solid 2px #666600;
+	background-color:#FFFFE0
+}
+
+.c_spring th {
+	background-color:#E0FFE0;
+}
+
+.c_fall th {
+	background-color:#FFE0E0;
+}
+
+.c_summer th {
+	background-color:#FFFFE0
+}
+
+.cost {
+	font-family:Courier New;
+	border-collapse:collapse;
+}
+
+.cost td {
+	height:10px;
+	padding:2px;
+	border:1px solid #707070;
+}
+
+.cost th {
+	font-size:9pt;
+	height:10px;
+	padding:2px;
+	border:1px solid #707070;
+	padding-left:10px;
+	padding-right:10px;
+	padding-bottom:5px;
+}
+
+.cost th.corner {
+	border:0px solid white;
+	background-color:#FFFFFF;
+}
+
+.cost .data {
+	font-size:12px;
+	width:90px;
+	text-align:right
+	padding-right:1px;
+}
+
+.exp {
+	color:#FF0000;
+}
+
+.inc {
+	color:#00AA00;
+}
+
+.tot {
+	color:#000000;
+}
+
+tr.altc {
+	background-color:#E0F0FF;
+}
+
+.show_on_print {
+	display:block;
+}
+
+.hide_on_print {
+	display:block;
+}
+
+@media print {
+	.cost {
+		font-family:Courier New;
+		font-size:9pt;
+		border-collapse:collapse;
+		padding:0px;
+	}
+
+	.cost td {
+		height:10px;
+		padding:0px;
+		border:1px solid black;
+	}
+
+	.cost th {
+		font-size:9pt;
+		height:10px;
+		border:1px solid black;
+		padding:0px;
+		padding-left:2px;
+		padding-right:2px;
+		padding-bottom:0px;
+	}
+
+	.cost th.corner img {
+		display:none;
+	}
+
+	.cost .data {
+		font-size:10px;
+		width:90px;
+		text-align:right
+		padding-right:1px;
+	}
+
+	.show_on_print {
+		display:block;
+	}
+
+	.hide_on_print {
+		display:none;
+	}
+}
+</style>
+<script>
+function togglePrintStyle() {
+	var tblCosts    = document.getElementById("tblCosts");
+	var sStyles 	  = tblCosts.className;
+	var arrStyles   = sStyles.split(' ');
+	var sPrintStyle = arrStyles[2];
+	var sFinalClass = '';
+
+	var chkTogglePrint = document.getElementById("chkTogglePrint");
+
+	if (chkTogglePrint.checked == true) {
+		sPrintStyle = 'show_on_print';
+	}
+	else {
+		sPrintStyle = 'hide_on_print';
+	}
+
+	sFinalClass = arrStyles[0] + ' ' + arrStyles[1] + ' ' + sPrintStyle;
+	tblCosts.className = sFinalClass;
+}
+</script>
+<table id="tblCosts" cellpadding="0" cellspacing="0" class="cost c_spring show_on_print">
+<tr><th class="corner"><img src="calc.gif" class="btn" onmouseover="calcOver(this)" onmouseout="calcOut(this)" alt="click to recalculate the costs" onclick="calcCostRow()"/></th><th>expense</th><th>income</th><th>Daily Profit</th></tr>
+<tr>
+<th>1st</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>2nd</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>3rd</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>4th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>5th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>6th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>7th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>8th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>9th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>10th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>11th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>12th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>13th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>14th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>15th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>16th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>17th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>18th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>19th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>20th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>21st</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>22nd</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>23rd</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>24th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>25th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>26th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>27th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>28th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr>
+<th>29th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr class="altc">
+<th>30th</th>
+<td class="data exp">&nbsp;</td><td class="data inc">&nbsp;</td><td class="data tot">&nbsp;</td>
+</tr>
+<tr id="trTotals"><th class="corner">&nbsp;</th><th>&nbsp;</th><th>&nbsp;</th><th>&nbsp;</th></tr>
+</table>
+<div class="hide_on_print">
+<input id="chkTogglePrint" type="checkbox" onclick="togglePrintStyle()" checked="true"/>Show Cost Sheet on Print
+</div>
+<!-- FIELD USAGE TABLE -->
+<style>
+@media screen {
+	.fieldbar {
+		padding:0 px;
+		font-size:9pt;
+		height:10px;
+		width:100px;
+	}
+
+	.fieldbar td {
+		padding:0 px;
+		border:solid 0px white;
+	}
+
+	.FldHdr {
+		font-size:9pt;
+		font-weight:bold;
+	}
+
+	#divFieldBar {
+		position:relative;
+		top:-790px;
+		left:350px;
+	}
+}
+
+@media print {
+	#divFieldBar {
+		display:none;
+	}
+}
+</style>
+<script>
+var m_iTotalSquaresUsed = 0;
+var TOT_FIELD_SQUARES 	= 1075;
+
+function calcFieldPercentage() {
+	//iterates through saved rows
+	var tblHead 		= document.getElementById("tblHead");
+	var iThisRow;		//row counter
+	var oCurrRow;
+	var iFieldUsage = 0;
+	var iCPB = 9;
+	var iNumBags = 0;
+
+	for (iThisRow = 1; iThisRow < tblHead.rows.length; iThisRow++) {
+		oCurrRow = tblHead.rows[iThisRow];
+
+		if (oCurrRow.saved == "1") {
+			iNumBags = parseInt(oCurrRow.nbags,10);
+			iCPB 		 = parseInt(oCurrRow.cpb,10);
+
+			iFieldUsage += iNumBags * iCPB;
+		}
+	}
+
+	m_iTotalSquaresUsed = iFieldUsage;
+
+	var iFieldPerc = (iFieldUsage/TOT_FIELD_SQUARES) * 100;
+	iFieldPerc = Math.round(iFieldPerc);
+	return iFieldPerc;
+}
+
+function setFieldPercBar() {
+	var iFieldPerc = calcFieldPercentage();
+
+	var iFieldTemp = Math.floor(iFieldPerc/10);
+
+	var tblFieldBar = document.getElementById("tblFieldBar");
+	var tdPerc 			= document.getElementById("tdPerc");
+	var bSquares		= document.getElementById("bSquares");
+	var bSqrsRem		= document.getElementById("bSqrsRem");
+	var bBagsPoss		= document.getElementById("bBagsPoss");
+
+	var i;
+
+	if (iFieldTemp > 10) {
+		alert('overallocation of fieldspace');
+	}
+	else {
+		for (i=0; i<iFieldTemp; i++) {
+			tblFieldBar.cells[i].childNodes[0].src = 'p1.gif';
+		}
+	}
+
+	var iSqrsRem  = TOT_FIELD_SQUARES - m_iTotalSquaresUsed;
+	var iBagsPoss = Math.floor(iSqrsRem/9);
+
+	if (iSqrsRem < 0) {
+		iSqrsRem = 0;
+	}
+
+	if (iBagsPoss < 0) {
+		iBagsPoss = 0;
+	}
+
+	tdPerc.innerHTML = '&nbsp;' + iFieldPerc + '%';
+	bSquares.innerText = m_iTotalSquaresUsed;
+	bSqrsRem.innerText = iSqrsRem;
+	bBagsPoss.innerText = iBagsPoss;
+}
+</script>
+<div id="divFieldBar">
+<span class="FldHdr">Field Usage Percentage</span>
+<table id="tblFieldBar" cellpadding="0" cellspacing="0" style="border-collapse:collapse;" class="fieldbar">
+<tr><td><IMG src="p0.gif" /></td><td><IMG src="p0.gif" /></td><td><IMG src="p0.gif" /></td>
+<td><IMG src="p0.gif" /></td><td><IMG src="p0.gif" /></td><td><IMG src="p0.gif" /></td>
+<td><IMG src="p0.gif" /></td><td><IMG src="p0.gif" /></td><td><IMG src="p0.gif" /></td>
+<td><IMG src="p0.gif" /></td><td id="tdPerc">&nbsp;0%</td>
+</tr>
+</table>
+<div>squares used: <B id="bSquares">0</B></div>
+<div>maximum squares: <B>1,075</B></div>
+<div>squares remaining: <B id="bSqrsRem">1,075</B></div>
+<div>bags possible: <B id="bBagsPoss">112</B></div>
+</div>
+</BODY>
+</HTML>
+
+
+
+
+

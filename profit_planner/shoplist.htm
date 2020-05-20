@@ -1,0 +1,169 @@
+<HTML>
+<HEAD>
+<TITLE>
+Shopping List
+</TITLE>
+<style>
+.shoplist {
+	border-collapse:collapse;
+	padding:5px;
+}
+
+.shoplist td {
+	font-family:Microsoft Sans Serif, Verdana, Arial, Sans Serif;
+	font-size:9pt;
+}
+
+.shoplist th {
+	font-family:Microsoft Sans Serif, Verdana, Arial, Sans Serif;
+	font-size:8pt;
+}
+
+.spring th {
+	background-color:#E0FFE0;
+}
+
+.fall th {
+	background-color:#FFE0E0;
+}
+
+.summer th {
+	background-color:#FFFFE0;
+}
+
+.pbutton {
+	cursor:hand;
+}
+
+@media screen {
+	.noshowonprint {
+			display:block;
+	}
+}
+
+@media print {
+	.noshowonprint {
+			display:none;
+	}
+}
+</style>
+<script src="crop.js"></script>
+<SCRIPT>
+var m_sInputParams = window.dialogArguments;
+var m_arrInput;
+var m_bHasInput = true;
+var m_sSeason;
+
+function parseInput() {
+
+	if (m_sInputParams == null) {
+		m_bHasInput = false;
+		return;
+	}
+}
+
+function setScreen() {
+	if (m_bHasInput) {
+		var tblList = document.getElementById("tblList");
+
+		var i;
+		var iVegId;
+		var iBagPrice;
+		var iTotPrice;
+		var iSeasonID;
+		var sVendor;
+
+		var iNumBags;
+		var sCropName;
+		var oCropObj;
+
+		for (i=0; i<m_sInputParams.length;i++) {
+			iNumBags = m_sInputParams[i];
+
+			if (iNumBags > 0) {
+				iVegId 		= i;
+
+				oCropObj 	= arrCrops[iVegId];
+				sCropName = oCropObj.name;
+				iBagPrice = oCropObj.buy;
+				iTotPrice = iBagPrice * iNumBags;
+				iSeasonID = iVegId % 3;
+				m_sSeason = arrSeasonNames[iSeasonID];
+				sVendor   = arrVendorNames[iVegId];
+
+				addRow(iVegId, iNumBags, sCropName, iBagPrice, iTotPrice, sVendor)
+			}
+		}
+	}
+}
+
+
+function addRow(iVegId, iNumBags, sVegName, iPrice, iTot, sWhere) {
+	//add new row to plan table
+	var tblList = document.getElementById("tblList");
+	var oNewRow = tblList.insertRow();
+
+	tblList.rows[0].className = m_sSeason.toLowerCase();
+
+	var oBagsCell;
+	var oTypeCell;
+	var oUnitCell;
+	var oTotCell;
+	var oWhoCell;
+
+	oBagsCell = oNewRow.insertCell();
+	oTypeCell = oNewRow.insertCell();
+	oUnitCell = oNewRow.insertCell();
+	oTotCell  = oNewRow.insertCell();
+	oWhoCell  = oNewRow.insertCell();
+
+	var oSeedImg = new Image();
+	var oSeedSpn = document.createElement("SPAN");
+
+	oSeedImg.src = arrSeedImages[iVegId];
+	oSeedSpn.innerText = ' x ' + iNumBags;
+
+	oBagsCell.appendChild(oSeedImg)
+	oBagsCell.appendChild(oSeedSpn)
+
+	oTypeCell.innerText = sVegName;
+	oUnitCell.innerText = iPrice + 'G';
+	oTotCell.innerText  = iTot + 'G';
+	oWhoCell.innerText = sWhere;
+
+}
+parseInput()
+
+function pr_ovr(obj) {
+	obj.style.border = "solid 1px #C0C0C0"
+}
+
+function pr_out(obj) {
+	obj.style.border = "solid 1px white"
+}
+
+function pr_click() {
+	window.print();
+}
+</SCRIPT>
+</HEAD>
+<BODY>
+<table id="tblList" class="shoplist spring" cellspacing="0" cellpadding="0" border="1">
+<tr class="spring">
+<th>Bags</th>
+<th>Type</th>
+<th>Price</th>
+<th>Tot</th>
+<th>Where</th>
+</tr>
+</table>
+<br/>
+<table cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;" class="noshowonprint">
+<tr><td><img class="pbutton" src="print.gif" style="border:1px solid white" onmouseover="pr_ovr(this)" onmouseout="pr_out(this)" onclick="pr_click()" alt="print shopping list"/></td></tr>
+</table>
+
+<script>
+setScreen()
+</script>
+</BODY>
+</HTML>
